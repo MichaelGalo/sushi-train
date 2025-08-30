@@ -1,36 +1,5 @@
-import sys
-import os
-import io
 import duckdb
-import polars as pl
-from urllib.parse import urlencode
-current_path = os.path.dirname(os.path.abspath(__file__))
-parent_path = os.path.abspath(os.path.join(current_path, ".."))
-sys.path.append(parent_path)
-
-def execute_SQL_file_list(con, list_of_file_paths):
-    """
-    Execute a list of SQL files against the provided DuckDB connection.
-
-    Parameters
-    - con: duckdb connection object to execute SQL on.
-    - list_of_file_paths: iterable of file paths (relative to project parent) containing SQL statements.
-
-    Raises
-    - FileNotFoundError: if any SQL file is missing.
-    - Exception: re-raises underlying execution errors.
-    """
-    for file_path in list_of_file_paths:
-        full_path = os.path.join(parent_path, file_path)
-        if not os.path.exists(full_path):
-            raise FileNotFoundError(full_path)
-
-        with open(full_path, 'r') as file:
-            sql = file.read()
-        try:
-            con.execute(sql)
-        except Exception as e:
-            raise
+import os
 
 def duckdb_memory_con_init():
     """
@@ -98,6 +67,7 @@ def ducklake_refresh(con):
     con.execute("CALL ducklake_expire_snapshots('my_ducklake', older_than => now())")
     con.execute("CALL ducklake_cleanup_old_files('my_ducklake', cleanup_all => true)")
 
+
 def update_ducklake_from_minio_parquets(con, bucket_name, source_folder_path, target_folder_path):
     """
     Read Parquet files from a MinIO (S3) bucket and create/replace tables in DuckLake.
@@ -145,95 +115,54 @@ def update_ducklake_from_minio_parquets(con, bucket_name, source_folder_path, ta
         raise
 
 
-def write_data_to_minio_from_parquet_buffer(parquet_buffer, minio_client, bucket_name, object_name, folder_name=None):    
-    """
-    Upload a parquet binary buffer to MinIO as an object.
+def update_ducklake_from_minio_csvs(con, bucket_name, source_folder_path, target_folder_path):
+        """
+        Read CSV files from a MinIO (S3) bucket and create/replace tables in DuckLake.
 
-    Parameters
-    - parquet_buffer: io.BytesIO containing parquet bytes (will be seeked to 0)
-    - minio_client: an instantiated MinIO client with put_object method
-    - bucket_name: target bucket name
-    - object_name: desired object name (filename)
-    - folder_name: optional folder inside bucket to place the object
+        Parameters
+        - con: duckdb connection
+        - bucket_name: name of the S3/MinIO bucket
+        - source_folder_path: folder inside the bucket with csv files
+        - target_folder_path: target schema or path in DuckLake where tables are created
+        - csv_options: optional dict of CSV parsing options (passed to read_csv_auto if needed)
 
-    Raises
-    - Re-raises any exception from the MinIO client.
-    """
-    parquet_buffer.seek(0)
-    data_bytes = parquet_buffer.read()
+        Behavior
+        - Uses `glob` to list csv files in the source path
+        - For each csv file, creates or replaces a table named after the file
+            (uppercased, hyphens/spaces replaced with underscores)
+        - Adds metadata columns: _source_file, _ingestion_timestamp, _record_id
 
-    if folder_name:
-        folder_name = folder_name.strip("/")
-        full_object_name = f"{folder_name}/{object_name}"
-    else:
-        full_object_name = object_name
+        Notes
+        - This uses DuckDB's `read_csv_auto` to infer schema; if you require explicit
+            options (delimiter, header, etc.) pass `csv_options` as a dict and use
+            alternative read approaches as needed.
 
-    try:
-        minio_client.put_object(
-            bucket_name,
-            full_object_name,
-            io.BytesIO(data_bytes),
-            length=len(data_bytes),
-            content_type="application/x-parquet",
-        )
-    except Exception as e:
-        raise
+        Raises
+        - Re-raises any exception encountered while listing or creating tables.
+        """
+        file_list_query = f"SELECT * FROM glob('s3://{bucket_name}/{source_folder_path}/*.csv')"
 
-def add_query_params_to_url(base_url, params):
-    """
-    Append query parameters to a base URL without parsing the URL first.
+        try:
+                files_result = con.execute(file_list_query).fetchall()
+                file_paths = []
+                for row in files_result:
+                        file_paths.append(row[0])
 
-    - Skips parameters with value None.
-    - Values are converted to strings and URL-encoded.
-    - Preserves existing query separators on the base_url.
+                for file_path in file_paths:
+                        file_name = os.path.basename(file_path).replace('.csv', '')
+                        table_name = file_name.upper().replace('-', '_').replace(' ', '_')
 
-    Parameters
-    - base_url: the URL string to append params to
-    - params: mapping of keys to values (values of None are skipped)
+                        query = f"""
+                        CREATE OR REPLACE TABLE {target_folder_path}.{table_name} AS
+                        SELECT
+                                *,
+                                '{file_name}' AS _source_file,
+                                CURRENT_TIMESTAMP AS _ingestion_timestamp,
+                                ROW_NUMBER() OVER () AS _record_id
+                        FROM read_csv_auto('{file_path}');
+                        """
 
-    Returns
-    - A new URL string with encoded query parameters appended.
-    """
-    if not params:
-        return base_url
+                        con.execute(query)
 
-    cleaned_params = {}
-    for name, value in params.items():
-        if value is None:
-            continue
-        cleaned_params[str(name)] = str(value)
-
-    if not cleaned_params:
-        return base_url
-
-    encoded_query = urlencode(cleaned_params, doseq=True)
-
-    if base_url.endswith('?') or base_url.endswith('&'):
-        separator = ''
-    elif '?' in base_url:
-        separator = '&'
-    else:
-        separator = '?'
-
-    result = f"{base_url}{separator}{encoded_query}"
-    return result
-
-
-def convert_df_to_parquet_buffer(dataframe):
-    """
-    Convert a Polars DataFrame to an in-memory parquet buffer (io.BytesIO).
-
-    Parameters
-    - dataframe: a polars.DataFrame instance
-
-    Returns
-    - io.BytesIO containing parquet data on success, or None on failure.
-    """
-    buffer = io.BytesIO()
-    try:
-        dataframe.write_parquet(buffer)
-        buffer.seek(0)
-        result = buffer
-        return result
-    except Exception as e:
-        return None
+        except Exception as e:
+                raise
