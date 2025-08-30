@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Like a sushi train, but for data engineering. Grab a utility function when you want it, and leave it if you don't."
 license = {text = "MIT"}
 authors = [
-    {name = "michael-galo",email = "michael.galo.dev@gmail.com"}
+    {name = "MichaelGalo",email = "michael.galo.dev@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.13"
@@ -17,3 +17,10 @@ dev = [
     "pytest>=8.4.1",
     "ruff>=0.12.11",
 ]
+
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project.urls]
+Homepage = "https://github.com/MichaelGalo/sushi_train"
