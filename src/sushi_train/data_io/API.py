@@ -1,4 +1,39 @@
+import requests
+import polars as pl
 from urllib.parse import urlencode
+
+def fetch_api_dataframe(base_url):
+    try:
+        response = requests.get(base_url)
+        response.raise_for_status()
+        data = response.json()
+        result = pl.DataFrame(data)
+        return result
+    except Exception as e:
+        print(f"Error fetching data from API: {e}")
+        return None
+
+def fetch_api_paginated_dataframe(base_url, limit=None, offset=None):
+    all_data = []
+    batch = [None]  # considered falsy for break at `[]`
+    total_records = 0
+    try: 
+        while batch:
+            paged_url = f"{base_url}?$limit={limit}&$offset={offset}"
+            response = requests.get(paged_url)
+            response.raise_for_status()
+            batch = response.json()
+            if not batch:
+                break
+            all_data.extend(batch)
+            total_records += len(batch)
+            offset += limit
+
+            result = pl.DataFrame(all_data)
+            return result
+    except Exception as e:
+        print(f"Error fetching paginated data from API: {e}")
+        return None
 
 def add_query_params_to_url(base_url, params):
     """
@@ -38,5 +73,3 @@ def add_query_params_to_url(base_url, params):
 
     result = f"{base_url}{separator}{encoded_query}"
     return result
-
-
