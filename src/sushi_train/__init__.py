@@ -1,8 +1,8 @@
 
-"""Top-level package API for sushi_train.
+"""Top-level package API for sushi-train.
 
 This module re-exports selected functions from the submodules so users
-can do `import sushi_train` and access the common helpers directly.
+can do `import sushi-train` and access the common helpers directly.
 """
 
 from .data_io.duckdb import (

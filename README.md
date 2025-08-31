@@ -31,7 +31,7 @@ pip install sushi-train
 Import the package and use the small focused utilities. The library exposes short, composable functions so you can grab them off the sushi train and into data pipelines:
 
 ```python
-from sushi_train import add_query_params_to_url
+from sushi-train import add_query_params_to_url
 
 url = "https://example.com/api"
 params = {"roll": "spicy-tuna",
