@@ -16,7 +16,7 @@ from .data_io.duckdb import (
 )
 from .data_io.minio import write_data_to_minio_from_parquet_buffer
 from .data_io.API import fetch_api_dataframe, fetch_api_paginated_dataframe, add_query_params_to_url, fetch_api_data
-from .logging import rotating_logger_json
+from .general.logging import rotating_logger_json
 from .transform.SQL import execute_SQL_file_list, execute_SQL_file
 from .transform.conversions import (
     convert_dataframe_to_parquet_stream,
