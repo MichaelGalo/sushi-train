@@ -5,6 +5,8 @@ current_path = os.path.dirname(os.path.abspath(__file__))
 parent_path = os.path.abspath(os.path.join(current_path, ".."))
 sys.path.append(parent_path)
 
+# adding comment for publish test. Disregard
+
 def execute_SQL_file_list(con, list_of_file_paths):
     """
     Execute a list of SQL files against the provided DuckDB connection.
