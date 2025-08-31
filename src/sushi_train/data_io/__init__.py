@@ -8,4 +8,4 @@ from .duckdb import (
     update_ducklake_from_minio_parquets,
     update_ducklake_from_minio_csvs,
 )
-from .API import fetch_api_dataframe, fetch_api_paginated_dataframe, add_query_params_to_url
+from .API import fetch_api_dataframe, fetch_api_paginated_dataframe, add_query_params_to_url, fetch_api_data

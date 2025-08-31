@@ -9,7 +9,7 @@ def convert_dataframe_to_parquet_stream(dataframe):
         return result
     except Exception as e:
         print(f"Error in converting dataframe to bytes stream: {e}")
-        return None
+        raise
 
 def convert_dataframe_to_csv_stream(dataframe):
     buffer = io.BytesIO()
@@ -20,4 +20,4 @@ def convert_dataframe_to_csv_stream(dataframe):
         return result
     except Exception as e:
         print(f"Error in converting dataframe to bytes stream: {e}")
-        return None
+        raise
