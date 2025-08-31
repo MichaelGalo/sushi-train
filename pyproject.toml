@@ -1,6 +1,6 @@
 [project]
 name = "sushi_train"
-version = "0.1.0"
+version = "0.1.1"
 description = "Like a sushi train, but for data engineering. Grab a utility function when you want it, and leave it if you don't."
 license = {text = "MIT"}
 authors = [
