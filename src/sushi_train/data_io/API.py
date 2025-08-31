@@ -1,35 +1,38 @@
-import sys
-import os
+import requests
+import polars as pl
 from urllib.parse import urlencode
-current_path = os.path.dirname(os.path.abspath(__file__))
-parent_path = os.path.abspath(os.path.join(current_path, ".."))
-sys.path.append(parent_path)
 
-# adding comment for publish test. Disregard
+def fetch_api_dataframe(base_url):
+    try:
+        response = requests.get(base_url)
+        response.raise_for_status()
+        data = response.json()
+        result = pl.DataFrame(data)
+        return result
+    except Exception as e:
+        print(f"Error fetching data from API: {e}")
+        return None
 
-def execute_SQL_file_list(con, list_of_file_paths):
-    """
-    Execute a list of SQL files against the provided DuckDB connection.
-
-    Parameters
-    - con: duckdb connection object to execute SQL on.
-    - list_of_file_paths: iterable of file paths (relative to project parent) containing SQL statements.
-
-    Raises
-    - FileNotFoundError: if any SQL file is missing.
-    - Exception: re-raises underlying execution errors.
-    """
-    for file_path in list_of_file_paths:
-        full_path = os.path.join(parent_path, file_path)
-        if not os.path.exists(full_path):
-            raise FileNotFoundError(full_path)
-
-        with open(full_path, 'r') as file:
-            sql = file.read()
-        try:
-            con.execute(sql)
-        except Exception as e:
-            raise
+def fetch_api_paginated_dataframe(base_url, limit=None, offset=None):
+    all_data = []
+    batch = [None]  # considered falsy for break at `[]`
+    total_records = 0
+    try: 
+        while batch:
+            paged_url = f"{base_url}?$limit={limit}&$offset={offset}"
+            response = requests.get(paged_url)
+            response.raise_for_status()
+            batch = response.json()
+            if not batch:
+                break
+            all_data.extend(batch)
+            total_records += len(batch)
+            offset += limit
+            result = pl.DataFrame(all_data)
+            return result
+    except Exception as e:
+        print(f"Error fetching paginated data from API: {e}")
+        return None
 
 def add_query_params_to_url(base_url, params):
     """
@@ -69,5 +72,3 @@ def add_query_params_to_url(base_url, params):
 
     result = f"{base_url}{separator}{encoded_query}"
     return result
-
-
