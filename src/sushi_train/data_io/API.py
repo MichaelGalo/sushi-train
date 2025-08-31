@@ -28,7 +28,6 @@ def fetch_api_paginated_dataframe(base_url, limit=None, offset=None):
             all_data.extend(batch)
             total_records += len(batch)
             offset += limit
-
             result = pl.DataFrame(all_data)
             return result
     except Exception as e:

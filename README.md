@@ -12,9 +12,11 @@ Sushi Train is a small Python utility library geared towards data engineering ta
 
 ## Features
 
+- Local io file read/write helper functions
 - Duckdb (in-memory currently) & Ducklake connection and attachment functions
 - Query Param helper for constructing dynamic URLs from .env base URLs
 - Updating Ducklake Catalog from MinIO bucket files
+- Etc.
 
 ## Installation
 
