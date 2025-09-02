@@ -2,6 +2,16 @@ import requests
 import polars as pl
 from urllib.parse import urlencode
 
+def fetch_api_data(base_url):
+    try:
+        response = requests.get(base_url)
+        response.raise_for_status()
+        data = response.json()
+        return data
+    except Exception as e:
+        print(f"Error fetching data from API: {e}")
+        raise
+
 def fetch_api_dataframe(base_url):
     try:
         response = requests.get(base_url)
@@ -11,7 +21,7 @@ def fetch_api_dataframe(base_url):
         return result
     except Exception as e:
         print(f"Error fetching data from API: {e}")
-        return None
+        raise
 
 def fetch_api_paginated_dataframe(base_url, limit=None, offset=None):
     all_data = []
@@ -32,7 +42,7 @@ def fetch_api_paginated_dataframe(base_url, limit=None, offset=None):
             return result
     except Exception as e:
         print(f"Error fetching paginated data from API: {e}")
-        return None
+        raise
 
 def add_query_params_to_url(base_url, params):
     """

@@ -1,7 +1,7 @@
 
 import polars as pl
 
-from sushi_train.data_io.local import (
+from sushi-train.data_io.local import (
 	write_dataframe_to_local_csv,
 	read_local_csv_to_dataframe,
 	write_dataframe_to_local_parquet,
